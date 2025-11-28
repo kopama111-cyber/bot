@@ -1,24 +1,35 @@
 import TelegramBot from "node-telegram-bot-api";
 import express from "express";
 
-const app = express();
-app.get("/", (req, res) => res.send("Bot is running"));
-app.listen(10000);
-
-// =========================
-// 🔑 ВСТАВ СВІЙ TOKEN ТУТ
-// =========================
 const TOKEN = process.env.BOT_TOKEN;
+const URL = process.env.RENDER_EXTERNAL_URL; // Render сам підставляє твій домен
+const PORT = process.env.PORT || 10000;
 
-// створюємо бота
-const bot = new TelegramBot(TOKEN, { polling: true });
+const app = express();
+app.use(express.json());
 
+// Створюємо бота без polling
+const bot = new TelegramBot(TOKEN, { polling: false });
+
+// Webhook endpoint — Telegram буде сюди присилати повідомлення
+app.post("/webhook", (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+// Установлюємо webhook при запуску
+bot.setWebHook(`${URL}/webhook`);
+
+app.get("/", (req, res) => res.send("Bot is running (webhook mode)"));
+
+app.listen(PORT, () => {
+  console.log("Server is running on port", PORT);
+});
 
 // =========================
 //      КОМАНДИ
 // =========================
 
-// /start
 bot.onText(/\/start/, (msg) => {
   bot.sendMessage(
     msg.chat.id,
@@ -26,7 +37,6 @@ bot.onText(/\/start/, (msg) => {
   );
 });
 
-// /help
 bot.onText(/\/help/, (msg) => {
   bot.sendMessage(
     msg.chat.id,
@@ -34,4 +44,4 @@ bot.onText(/\/help/, (msg) => {
   );
 });
 
-console.log("Bot is running…");
+console.log("Bot is running in WEBHOOK mode…");
